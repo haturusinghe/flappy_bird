@@ -185,14 +185,21 @@ class Base:
         win.blit(self.IMG, (self.x2, self.y))
 
 
-def draw_window(win, bird):
+def draw_window(win, bird, pipes, base):
     win.blit(BG_IMG, (0, 0))  # This draws the background image
+    for pipe in pipes:
+        pipe.draw(win)
+
+    base.draw(win)
+
     bird.draw(win)
     pygame.display.update()  # This updates the display
 
 
 def main():
-    bird = Bird(200, 200)  # Create a new bird object with starting position (200, 200)
+    bird = Bird(230, 350)  # Create a new bird object with starting position (200, 200)
+    base = Base(730)  # Create a new base object with starting position (730, 0)
+    pipes = [Pipe(700)]  # Create a new pipe object with starting position (700, 0)
     win = pygame.display.set_mode(
         (MIN_WIDTH, MIN_HEIGHT)
     )  # Create a new window with width 500 and height 800
@@ -206,8 +213,19 @@ def main():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
+
         # bird.move()  # we call the move function of the bird object every frame
-        draw_window(win, bird)  # this draws the window every frame
+        base.move()  # we call the move function of the base object every frame
+        for pipe in pipes:
+            if pipe.collide(bird):
+                pass
+            if pipe.x + pipe.PIPE_TOP.get_width() < 0:
+                pipes.remove(pipe)
+            if not pipe.passed and pipe.x < bird.x:
+                pipe.passed = True
+                pipes.append(Pipe(600))
+            pipe.move()  # we call the move function of the pipe object every frame
+        draw_window(win, bird, pipes, base)  # this draws the window every frame
 
 
 main()
