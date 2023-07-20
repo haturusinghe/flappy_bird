@@ -4,8 +4,13 @@ import time
 import os
 import random
 
+pygame.font.init()  # init font
+
 MIN_WIDTH = 500
 MIN_HEIGHT = 800
+FLOOR = 730
+STAT_FONT = pygame.font.SysFont("comicsans", 50)
+END_FONT = pygame.font.SysFont("comicsans", 70)
 
 BIRD_IMGS = [
     pygame.transform.scale2x(pygame.image.load(os.path.join("imgs", "bird1.png"))),
@@ -185,14 +190,18 @@ class Base:
         win.blit(self.IMG, (self.x2, self.y))
 
 
-def draw_window(win, bird, pipes, base):
+def draw_window(win, bird, pipes, base, score):
     win.blit(BG_IMG, (0, 0))  # This draws the background image
     for pipe in pipes:
         pipe.draw(win)
 
     base.draw(win)
 
+    score_label = STAT_FONT.render("Score: " + str(score), 1, (255, 255, 255))
+    win.blit(score_label, (MIN_WIDTH - score_label.get_width() - 15, 10))
+
     bird.draw(win)
+
     pygame.display.update()  # This updates the display
 
 
@@ -206,6 +215,8 @@ def main():
     clock = (
         pygame.time.Clock()
     )  # this is a clock object that we will use to set the fps of the game
+
+    score = 0
 
     while True:
         clock.tick(30)  # this sets the fps of the game to 30
@@ -223,9 +234,10 @@ def main():
                 pipes.remove(pipe)
             if not pipe.passed and pipe.x < bird.x:
                 pipe.passed = True
+                score += 1
                 pipes.append(Pipe(600))
             pipe.move()  # we call the move function of the pipe object every frame
-        draw_window(win, bird, pipes, base)  # this draws the window every frame
+        draw_window(win, bird, pipes, base, score)  # this draws the window every frame
 
 
 main()
