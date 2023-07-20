@@ -31,7 +31,9 @@ class Bird:
         self.tick_count = 0  # How many ticks since last jump
         self.vel = 0  # Starting velocity
         self.height = self.y  # Starting height
-        self.img_count = 0  # Which image we are currently showing
+        self.img_count = (
+            0  # Which image we are currently showing, keeps track of the animation
+        )
         self.img = self.IMGS[0]  # Starting image
 
     def jump(self):
@@ -95,6 +97,92 @@ class Bird:
 
     def get_mask(self):
         return pygame.mask.from_surface(self.img)  # This is for pixel perfect collision
+
+
+class Pipe:
+    GAP = 200
+    VEL = 5
+
+    def __init__(self, x):
+        self.x = x  # x position of the pipe
+        self.height = 0  # y position of the pipe
+
+        self.top = 0  # position of the top pipe
+        self.bottom = 0  # position of the bottom pipe
+        self.PIPE_TOP = pygame.transform.flip(
+            PIPE_IMG, False, True
+        )  # flips the pipe image to make it face down
+        self.PIPE_BOTTOM = PIPE_IMG  # pipe image
+
+        self.passed = False
+        self.set_height()
+
+    def set_height(self):
+        self.height = random.randrange(
+            50, 450
+        )  # generates a random height for the pipe between 50 and 450
+        self.top = self.height - self.PIPE_TOP.get_height()
+        self.bottom = self.height + self.GAP
+
+    def move(self):
+        self.x -= self.VEL
+
+    def draw(self, win):
+        win.blit(self.PIPE_TOP, (self.x, self.top))
+        win.blit(self.PIPE_BOTTOM, (self.x, self.bottom))
+
+    def collide(self, bird):
+        bird_mask = bird.get_mask()  # gets the mask of the bird
+        top_mask = pygame.mask.from_surface(
+            self.PIPE_TOP
+        )  # gets the mask of the top pipe
+        bottom_mask = pygame.mask.from_surface(
+            self.PIPE_BOTTOM
+        )  # gets the mask of the bottom pipe
+
+        top_offset = (self.x - bird.x, self.top - round(bird.y))
+        # This is the distance between the bird and the top pipe
+        bottom_offset = (self.x - bird.x, self.bottom - round(bird.y))
+        # This is the distance between the bird and the bottom pipe
+
+        b_point = bird_mask.overlap(bottom_mask, bottom_offset)
+        # This is the point of collision between the bird and the bottom pipe
+        t_point = bird_mask.overlap(top_mask, top_offset)
+        # This is the point of collision between the bird and the top pipe
+
+        if t_point or b_point:
+            # if either of the points are not None
+            return True
+        return False
+
+
+class Base:
+    VEL = 5
+    WIDTH = BASE_IMG.get_width()
+    IMG = BASE_IMG
+
+    def __init__(self, y):
+        self.y = y
+        self.x1 = 0
+        self.x2 = self.WIDTH
+
+    def move(self):
+        self.x1 -= self.VEL
+        self.x2 -= self.VEL
+
+        # This makes the base move infinitely
+        if self.x1 + self.WIDTH < 0:  # if the first base image is off the screen
+            self.x1 = (
+                self.x2 + self.WIDTH
+            )  # move the first base image to the right of the second base image
+        if self.x2 + self.WIDTH < 0:  # if the second base image is off the screen
+            self.x2 = (
+                self.x1 + self.WIDTH
+            )  # move the second base image to the right of the first base image
+
+    def draw(self, win):
+        win.blit(self.IMG, (self.x1, self.y))
+        win.blit(self.IMG, (self.x2, self.y))
 
 
 def draw_window(win, bird):
