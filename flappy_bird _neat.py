@@ -50,31 +50,26 @@ class Bird:
         self.height = self.y  # Reset height
 
     def move(self):
-        self.tick_count += 1  # Increment tick count
+        self.tick_count += 1
 
-        displacement = self.vel * self.tick_count + 1.5 * self.tick_count ** 2
-        # How much we are moving up or down this frame
+        # for downward acceleration
+        displacement = self.vel * self.tick_count + 0.5 * (3) * self.tick_count ** 2  # calculate displacement
 
-        if displacement >= 16:  # if we are moving down more than 16 pixels
-            displacement = 16  # this changes the value to 16 so that we don't move down too fast
+        # terminal velocity
+        if displacement >= 16:
+            displacement = (displacement/abs(displacement)) * 16
 
-        if displacement < 0:  # if we are moving up
-            displacement -= 2  # move up a little more so that we don't move up too fast
+        if displacement < 0:
+            displacement -= 2
 
-        self.y = (
-                self.y + displacement
-        )  # what this does is it moves the bird up or down depending on the value of d
+        self.y = self.y + displacement
 
-        if displacement < 50 or self.y < self.height + 50:
-            # if we are moving up or if we are above the height we started at
-            # and if we are not tilted too far down
-            if self.tilt < -self.MAX_ROTATION:  # if we are tilted too far down
-                self.tilt = (
-                    -self.MAX_ROTATION
-                )  # set tilt to max rotation so that we don't tilt too far down
-            else:
-                if self.tilt > -90:
-                    self.tilt -= self.ROT_VEL  # it tilts the bird down
+        if displacement < 0 or self.y < self.height + 50:  # tilt up
+            if self.tilt < self.MAX_ROTATION:
+                self.tilt = self.MAX_ROTATION
+        else:  # tilt down
+            if self.tilt > -90:
+                self.tilt -= self.ROT_VEL
 
     def draw(self, win):
         self.img_count += 1  # Increment image count
@@ -137,27 +132,23 @@ class Pipe:
         win.blit(self.PIPE_BOTTOM, (self.x, self.bottom))
 
     def collide(self, bird):
-        bird_mask = bird.get_mask()  # gets the mask of the bird
-        top_mask = pygame.mask.from_surface(
-            self.PIPE_TOP
-        )  # gets the mask of the top pipe
-        bottom_mask = pygame.mask.from_surface(
-            self.PIPE_BOTTOM
-        )  # gets the mask of the bottom pipe
-
+        """
+        returns if a point is colliding with the pipe
+        :param bird: Bird object
+        :return: Bool
+        """
+        bird_mask = bird.get_mask()
+        top_mask = pygame.mask.from_surface(self.PIPE_TOP)
+        bottom_mask = pygame.mask.from_surface(self.PIPE_BOTTOM)
         top_offset = (self.x - bird.x, self.top - round(bird.y))
-        # This is the distance between the bird and the top pipe
         bottom_offset = (self.x - bird.x, self.bottom - round(bird.y))
-        # This is the distance between the bird and the bottom pipe
 
         b_point = bird_mask.overlap(bottom_mask, bottom_offset)
-        # This is the point of collision between the bird and the bottom pipe
         t_point = bird_mask.overlap(top_mask, top_offset)
-        # This is the point of collision between the bird and the top pipe
 
-        if t_point or b_point:
-            # if either of the points are not None
+        if b_point or t_point:
             return True
+
         return False
 
 
@@ -255,14 +246,14 @@ def eval_genomes(genomes, config):
     global gen
     gen += 1
 
-    for _, g in genomes:  # g is the genome
+    for gid, g in genomes:  # g is the genome
         g.fitness = 0
         net = neat.nn.FeedForwardNetwork.create(g, config)
         nets.append(net)
         birds.append(Bird(230, 350))
         ge.append(g)
 
-    base = Base(730)  # Create a new base object with starting position (730, 0)
+    base = Base(FLOOR)  # Create a new base object with starting position (730, 0)
     pipes = [Pipe(700)]  # Create a new pipe object with starting position (700, 0)
     win = pygame.display.set_mode(
         (MIN_WIDTH, MIN_HEIGHT)
@@ -290,11 +281,11 @@ def eval_genomes(genomes, config):
                 # use the first or second
                 pipe_ind = 1  # pipe on the screen for neural network input
 
-        for x, bird in enumerate(birds):  # This moves each bird in the list
-            ge[x].fitness += 0.1  # every frame the bird stays alive, it gets a fitness of 0.1
+        for bird in birds:  # This moves each bird in the list
+            ge[birds.index(bird)].fitness += 0.1  # every frame the bird stays alive, it gets a fitness of 0.1
             bird.move()
 
-            output = nets[x].activate( #output determines whether the bird should jump or not
+            output = nets[birds.index(bird)].activate( #output determines whether the bird should jump or not
                 (
                     bird.y, # y position of bird
                     abs(bird.y - pipes[pipe_ind].height), # location of top pipe
@@ -310,8 +301,8 @@ def eval_genomes(genomes, config):
         rem = []  # this is a list of pipes that we will remove
         add_pipe = False # this determines whether we should add a pipe or not
         for pipe in pipes:
+            pipe.move() # we call the move function of the pipe object every frame
             for x, bird in enumerate(birds):
-                pipe.move() # we call the move function of the pipe object every frame
                 if pipe.collide(bird):
                     ge[x].fitness -= 1
                     birds.pop(x)  # removes the bird from the list at index x
